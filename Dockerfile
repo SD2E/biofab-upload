@@ -8,6 +8,7 @@ RUN pip install -r requirements.txt
 
 COPY ./biofab-upload /app/biofab-upload
 COPY ./agave /app/agave
+COPY ./upload /app/upload
 
 
 FROM langbuilder as s3builder
