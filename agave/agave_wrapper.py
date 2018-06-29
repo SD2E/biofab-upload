@@ -10,7 +10,8 @@ class AgaveWrapper:
     "bucket"
     """
 
-    def __init__(self, **params):
+    def __init__(self, *, rootpath, system_id, server, username, password,
+                 client, api_key, api_secret):
         """
         Initialize a DataManager object.
 
@@ -24,16 +25,16 @@ class AgaveWrapper:
           params (string) api_key the Agave API key
           params (string) api_secret the Agave API secret
         """
-        self._rootpath = params['rootpath']
-        self._system_id = params['system_id']
+        self._rootpath = rootpath
+        self._system_id = system_id
 
         self._agave = Agave(
-            api_server='https://' + params['server'],
-            username=params['username'],
-            password=params['password'],
-            client_name=params['client'],
-            api_key=params['api_key'],
-            api_secret=params['api_secret']
+            api_server='https://' + server,
+            username=username,
+            password=password,
+            client_name=client,
+            api_key=api_key,
+            api_secret=api_secret
         )
 
     def make_directory(self, path):
@@ -99,14 +100,15 @@ class AgaveInstanceFactory:
     Factory object for Agave instances.
     """
 
-    def __init__(self, **params):
+    def __init__(self, *, username, password, server, client, api_key,
+                 api_secret):
         self._map = dict()
-        self._username = params['username']
-        self._password = params['password']
-        self._server = params['server']
-        self._client = params['client']
-        self._api_key = params['api_key']
-        self._api_secret = params['api_secret']
+        self._username = username
+        self._password = password
+        self._server = server
+        self._client = client
+        self._api_key = api_key
+        self._api_secret = api_secret
 
     def get_instance(self, agave_path):
         """

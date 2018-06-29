@@ -3,7 +3,6 @@ Provides the UploadManifest class.
 """
 import json
 import hashlib
-import os
 
 
 class UploadManifest:
@@ -11,27 +10,27 @@ class UploadManifest:
     Represents the manifest for an upload in a measurement operation.
     """
 
-    def __init__(self, **params):
-        self.uri = params['manifest_uri']
-        self.plan_uri = params['plan_uri']
-        self.manifest_version = params['manifest_version']
-        self.instrument_configuration = params['config_uri']
+    def __init__(self, *,
+                 manifest_uri, plan_uri, manifest_version, config_uri):
+        self.uri = manifest_uri
+        self.plan_uri = plan_uri
+        self.manifest_version = manifest_version
+        self.instrument_configuration = config_uri
         self.sample_list = []
 
-    def add_sample(self, **params):
+    def add_sample(self, *, sample, files=[], collected=True):
+        """
+        Adds a sample to the manifest.
+        If `collected` is false or `files` is empty, ensures both are true.
+        """
         entry = dict()
-        entry['sample'] = params['sample']
-        if 'files' in params:
-            entry['files'] = params['files']
-        else:
-            entry['files'] = []
-        if 'collected' in params:
-            entry['collected'] = params['collected']
-        else:
-            entry['collected'] = bool(entry['files'])
+        entry['sample'] = sample
+        entry['files'] = []
+        if collected:
+            entry['files'] = files
+        entry['collected'] = collected and bool(entry['files'])
         self.sample_list.append(entry)
 
-    # TODO: deal with missing components
     def __str__(self):
         """
         Returns the string containing the JSON for this manifest.
@@ -45,30 +44,6 @@ class UploadManifest:
                 "samples": self.sample_list
             },
             indent=2)
-
-    def add_samples(self, association, exp_uri):
-        """
-        Add samples from uri_map to manifest
-        """
-        visitor = ManifestAssociationVisitor(manifest=self, exp_uri=exp_uri)
-        association.accept(visitor)
-
-
-class ManifestAssociationVisitor:
-    def __init__(self, **params):
-        self._manifest = params['manifest']
-        self._exp_uri = params['exp_uri']
-
-    def visit(self, well_id, uri):
-        dirpath = os.path.join('data', well_id)
-        file = os.listdir(dirpath)[0]
-        self._manifest.add_sample(
-            sample_uri=str(self._exp_uri.extend(well_id)),
-            file_list=[{
-                'file': str(uri),
-                'checksum': file_checksum(os.path.join(dirpath, file))
-            }]
-        )
 
 
 def object_checksum(object):

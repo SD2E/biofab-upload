@@ -12,21 +12,21 @@ class AgaveS3:
     Getting objects is not implemented.
     """
 
-    def __init__(self, **params):
+    def __init__(self, *, protocol, uri, key, secret, signature, region):
         """
         Creates an AgaveS3 object using the params object.
         """
         self.client = boto3.client(
             's3',
-            endpoint_url="{}://{}".format(params['protocol'],
-                                          params['uri']),
-            aws_access_key_id=params['key'],
-            aws_secret_access_key=params['secret'],
-            config=Config(signature_version=params['signature']),
-            region_name=params['region']
+            endpoint_url="{}://{}".format(protocol,
+                                          uri),
+            aws_access_key_id=key,
+            aws_secret_access_key=secret,
+            config=Config(signature_version=signature),
+            region_name=region
         )
 
-    def put_object(self, object, bucket_path, agave_uri,
+    def put_object(self, *, object, bucket_path, agave_uri,
                    content_type='text/plain'):
         """
         Puts an object to the s3 bucket.

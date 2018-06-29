@@ -10,10 +10,10 @@ class AgaveURI:
     Class to represent a URI on an agave resource.
     """
 
-    def __init__(self, **params):
+    def __init__(self, *, host, path):
         self._scheme = 'agave'
-        self.host = params['host']
-        self.path = params['path']
+        self.host = host
+        self.path = path
 
     @classmethod
     def from_URI(cls, uri):

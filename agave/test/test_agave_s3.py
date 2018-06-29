@@ -47,9 +47,9 @@ class TestAgaveS3:
         assert os.path.exists('/mnt/s3')
         client = example_client
         client.put_object(
-            example_uri['text'],
-            example_uri['bucket_path'],
-            example_uri['uri']
+            object=example_uri['text'],
+            bucket_path=example_uri['bucket_path'],
+            agave_uri=example_uri['uri']
         )
         key_path = os.path.join('/mnt/s3/s3', example_uri['file_path'])
         assert os.path.exists(key_path)
