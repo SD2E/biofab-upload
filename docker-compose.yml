@@ -4,7 +4,30 @@ services:
     build:
       context: .
       target: langbuilder
-    command: ['pytest']
+    command: ["pytest"]
     volumes:
       - ./biofab-upload:/app/biofab-upload
       - ./test:/app/test
+      - s3-shared:/mnt/s3
+    networks:
+      - testing-net
+    depends_on:
+      - s3
+
+  s3:
+    build: 
+      context: .
+      target: s3builder
+    command: ["fakes3","-r","/mnt/s3","-p","10001"]
+    ports:
+      - "10001:10001"
+    volumes:
+      - s3-shared:/mnt/s3
+    networks:
+      - testing-net
+
+volumes:
+  s3-shared:
+
+networks:
+  testing-net:
