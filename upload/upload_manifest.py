@@ -1,30 +1,36 @@
-"""
-Provides the UploadManifest class.
-"""
 import json
 import hashlib
+from typing import Any, List
 
 
 class UploadManifest:
     """
     Represents the manifest for an upload in a measurement operation.
+    Collects sample and file relationships, and then generates the manifest file
+    when dumped to a string.
     """
 
     def __init__(self, *,
-                 manifest_uri, plan_uri, manifest_version, config_uri):
+                 manifest_uri: str,
+                 plan_uri: str,
+                 manifest_version: str="https://gitlab.sd2e.org/sd2program/ta3-api/tags/ta3-api-0.0.2",
+                 config_uri: str):
         self.uri = manifest_uri
         self.plan_uri = plan_uri
         self.manifest_version = manifest_version
         self.instrument_configuration = config_uri
         self.sample_list = []
 
-    def add_sample(self, *, sample, files=[], collected=True):
+    def add_sample(self, *,
+                   samples: List[str],
+                   files: List[str]=[],
+                   collected: bool=True):
         """
         Adds a sample to the manifest.
         If `collected` is false or `files` is empty, ensures both are true.
         """
         entry = dict()
-        entry['sample'] = sample
+        entry['sample'] = samples
         entry['files'] = []
         if collected:
             entry['files'] = files
@@ -46,7 +52,7 @@ class UploadManifest:
             indent=2)
 
 
-def object_checksum(object):
+def object_checksum(object: Any):
     """
     Computes the sha1 hash of an object to be uploaded.  The object should be
     the internal representation of a file (as in from upload.data).
@@ -56,7 +62,7 @@ def object_checksum(object):
     return hash_sha.hexdigest()
 
 
-def file_checksum(filePath):
+def file_checksum(filePath: str):
     """
     Computes the SHA1 checksum for the file at `filePath`.
     """
