@@ -41,7 +41,8 @@ class TestUploadManifest:
     def test_add_sample(self, empty_manifest, example_plan):
         manifest = empty_manifest
         manifest.add_sample(
-            sample="https://hub.sd2e.org/user/sd2e/biofab_yeast_gates_q0_aq_12548_4/s906/1",
+            samples=[
+                "https://hub.sd2e.org/user/sd2e/biofab_yeast_gates_q0_aq_12548_4/s906/1"],
             files=[
                 "agave://data-sd2e-community/biofab/yeast-gates_q0/aq_12548_4/3/instrument_output/s906.fcs"]
         )
@@ -53,11 +54,13 @@ class TestUploadManifest:
     def test_add_uncollected(self, empty_manifest):
         manifest = empty_manifest
         manifest.add_sample(
-            sample="https://hub.sd2e.org/user/sd2e/biofab_yeast_gates_q0_aq_12548_4/s906/1",
+            samples=[
+                "https://hub.sd2e.org/user/sd2e/biofab_yeast_gates_q0_aq_12548_4/s906/1"],
             files=[]
         )
         manifest.add_sample(
-            sample="https://hub.sd2e.org/user/sd2e/biofab_yeast_gates_q0_aq_12548_4/s906/1",
+            samples=[
+                "https://hub.sd2e.org/user/sd2e/biofab_yeast_gates_q0_aq_12548_4/s906/1"],
             files=[
                 "agave://data-sd2e-community/biofab/yeast-gates_q0/aq_12548_4/3/instrument_output/s906.fcs"],
             collected=False
@@ -66,5 +69,4 @@ class TestUploadManifest:
         for sample in manifest.sample_list:
             assert not sample['collected']
             assert len(sample['files']) == 0
-        print(str(manifest))
-        assert False
+        # TODO: validate manifest
