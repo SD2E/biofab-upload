@@ -6,7 +6,7 @@ services:
       target: langbuilder
     command: ["pytest"]
     volumes:
-      - ./biofab-upload:/app/biofab-upload
+      - ./src:/app/
       - ./test:/app/test
       - s3-shared:/mnt/s3
     networks:
