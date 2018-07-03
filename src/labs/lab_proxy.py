@@ -1,6 +1,6 @@
 class LabProxy:
 
-    def get(self, sample_uri):
+    def get(self, sample_uri: str):
         pass
 
     @staticmethod

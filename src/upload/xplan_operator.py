@@ -3,6 +3,10 @@ import abc
 from agave.agave_s3 import AgaveS3
 from labs.lab_proxy import LabProxy
 from upload.upload_manifest import UploadManifest, object_checksum
+from typing import Any, Dict, List, Union
+
+OperatorJSON = Dict[str, Any]
+MeasurementJSON = List[Dict[str, Any]]
 
 
 class Operator(abc.ABC):
@@ -10,7 +14,7 @@ class Operator(abc.ABC):
     Abstract class for upload for XPlan measurement operators.
     """
 
-    def __init__(self, *, plan_id, operator_json):
+    def __init__(self, *, plan_id: str, operator_json: OperatorJSON):
         self._plan_id = plan_id
         self._operator = operator_json
         self.manifest_uri = operator_json['manifest']
@@ -32,7 +36,7 @@ class Operator(abc.ABC):
         )
 
     @staticmethod
-    def create_operator(*, plan_id: str, operator_json):
+    def create_operator(*, plan_id: str, operator_json: OperatorJSON):
         """
         Creates the appropriate measurements subclass for the given operator
         JSON.
@@ -69,13 +73,14 @@ class FlowCytometryOperator(Operator):
     Defines upload for a flow cytometry operator.
     """
 
-    def __init__(self, *, plan_id: str, operator_json):
+    def __init__(self, *, plan_id: str, operator_json: OperatorJSON):
         self._measurements = FlowCytometryOperator._get_measurements(
             operator_json['measurements'])
         super().__init__(plan_id=plan_id, operator_json=operator_json)
 
     @staticmethod
-    def _get_measurements(measurements_json):
+    def _get_measurements(
+            measurements_json: MeasurementJSON) -> List[Dict[str, str]]:
         """
         Transforms measurements from the JSON to a convenient form for
         uploading flow cytometry data set.
@@ -115,7 +120,7 @@ class FlowCytometryOperator(Operator):
                 files = []
                 collected = False
             manifest.add_sample(
-                sample=sample_uri,
+                samples=sample_uri,
                 files=files,
                 collected=collected
             )
@@ -129,13 +134,15 @@ class FlowCytometryOperator(Operator):
 
 class PlateReaderOperator(Operator):
 
-    def __init__(self, *, plan_id, operator_json):
+    def __init__(self, *, plan_id: str, operator_json: OperatorJSON):
         self._measurements = FlowCytometryOperator._get_measurements(
             operator_json['measurements'])
         super().__init__(plan_id=plan_id, operator_json=operator_json)
 
     @staticmethod
-    def _get_measurements(measurements_json):
+    def _get_measurements(
+            measurements_json: MeasurementJSON
+    ) -> Dict[str, Union[str, List[str]]]:
         measurement = next(iter(measurements_json), None)
         file_uri = next(iter(measurement['file']), None)
         sample_list = list()
@@ -146,7 +153,7 @@ class PlateReaderOperator(Operator):
             'samples': sample_list
         }
 
-    def upload(self, *, lab, s3):
+    def upload(self, *, lab: LabProxy, s3: AgaveS3):
         manifest = self.get_manifest()
         file_uri = self._measurements['file_uri']
         # other stuff here
