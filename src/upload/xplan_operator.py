@@ -3,10 +3,42 @@ import abc
 from agave.agave_s3 import AgaveS3
 from labs.lab_proxy import LabProxy
 from upload.upload_manifest import UploadManifest, object_checksum
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 OperatorJSON = Dict[str, Any]
 MeasurementJSON = List[Dict[str, Any]]
+
+
+class UploadVisitor:
+
+    def __init__(self, *,
+                 lab: LabProxy, s3: AgaveS3, manifest: UploadManifest):
+        self.lab = lab
+        self._s3 = s3
+        self._manifest = manifest
+
+    def upload_files(self, *, file_objects: List[Tuple(Any, str)],
+                     samples: List[str],
+                     content_type):
+        """
+        Uploads the list of file objects for the samples from the lab to the
+        s3 service
+        """
+        files = []
+        for file_object, file_uri in file_objects:
+            if file_object is None:
+                self._manifest.add_sample(samples=samples, collected=False)
+                return
+
+            self._s3.put_object(
+                object=file_object,
+                bucket_path=self.lab.get_bucket_path(),
+                agave_uri=file_uri,
+                content_type=content_type
+            )
+            checksum = object_checksum(file_object)
+            files.append({'file': file_uri, 'checksum': str(checksum)})
+        self._manifest.add_sample(samples=samples, files=files)
 
 
 class Operator(abc.ABC):
@@ -17,22 +49,27 @@ class Operator(abc.ABC):
     def __init__(self, *, plan_id: str, operator_json: OperatorJSON):
         self._plan_id = plan_id
         self._operator = operator_json
-        self.manifest_uri = operator_json['manifest']
+        self._manifest_uri = operator_json['manifest']
 
     @abc.abstractmethod
+    def accept(self, visitor: UploadVisitor):
+        pass
+
     def upload(self, *, lab: LabProxy, s3: AgaveS3):
         """
         Upload the files for this operator from the lab to the AgaveS3 server.
         """
-
-    def get_manifest(self) -> UploadManifest:
-        """
-        Returns the manifest for this measurement operator.
-        """
-        return UploadManifest(
-            manifest_uri=self.manifest_uri,
+        manifest = UploadManifest(
+            manifest_uri=self._manifest_uri,
             plan_uri=self._plan_id,
             config_uri=self._operator['instrument_configuration']
+        )
+        self.accept(UploadVisitor(lab=lab, s3=s3, manifest=manifest))
+        s3.put_object(
+            object=manifest,
+            bucket_path=lab.get_bucket_path(),
+            agave_uri=self._manifest_uri,
+            content_type='application/json'
         )
 
     @staticmethod
@@ -60,12 +97,13 @@ class Operator(abc.ABC):
                 operator_json=operator_json
             )
         elif operator_type in ['dna_seq', 'rna_seq']:
-            # TODO: this is only true for biofab. Anyone else using this?
+            # TODO: not clear whether to implement these here for biofab
             raise NotImplementedError(
-                "Sequencing operator data transfer implemented elsewhere")
+                "Sequencing operator data transfer not implemented")
         else:
+            msg = "either not a measurement or not supported"
             raise NotImplementedError(
-                "Operator type {} is not supported".format(operator_type))
+                "Operator type {} is {}".format(operator_type, msg))
 
 
 class FlowCytometryOperator(Operator):
@@ -97,45 +135,26 @@ class FlowCytometryOperator(Operator):
             })
         return measurement_list
 
-    def upload(self, *, lab: LabProxy, s3: AgaveS3):
+    def accept(self, visitor: UploadVisitor):
         """
         Uploads the files for a flow cytometry
         """
-        manifest = self.get_manifest()
         for measurement in self._measurements:
             file_uri = measurement['file_uri']
             sample_uri = measurement['sample_uri']
-            file_object = lab.get(sample_uri)
-            if file_object is not None:
-                s3.put_object(
-                    object=file_object,
-                    bucket_path=lab.bucket_path,
-                    agave_uri=file_uri,
-                    content_type='application/octet-stream'
-                )
-                checksum = object_checksum(file_object)
-                files = [{'file': file_uri, 'checksum': str(checksum)}]
-                collected = True
-            else:
-                files = []
-                collected = False
-            manifest.add_sample(
-                samples=sample_uri,
-                files=files,
-                collected=collected
+            file_object = visitor.lab.get_fcs(sample_uri)
+            sample_list = [sample_uri]
+            visitor.upload_files(
+                file_objects=[(file_object, file_uri)],
+                samples=sample_list,
+                content_type='application/octet-stream'
             )
-        s3.put_object(
-            object=manifest,
-            bucket_path=lab.bucket_path,
-            agave_uri=self.manifest_uri,
-            content_type='application/json'
-        )
 
 
 class PlateReaderOperator(Operator):
 
     def __init__(self, *, plan_id: str, operator_json: OperatorJSON):
-        self._measurements = FlowCytometryOperator._get_measurements(
+        self._measurements = PlateReaderOperator._get_measurements(
             operator_json['measurements'])
         super().__init__(plan_id=plan_id, operator_json=operator_json)
 
@@ -153,14 +172,13 @@ class PlateReaderOperator(Operator):
             'samples': sample_list
         }
 
-    def upload(self, *, lab: LabProxy, s3: AgaveS3):
-        manifest = self.get_manifest()
-        file_uri = self._measurements['file_uri']
-        # other stuff here
-
-        s3.put_object(
-            object=manifest,
-            bucket_path=lab.bucket_path,
-            agave_uri=self.manifest_uri,
-            content_type='application/json'
+    def accept(self, visitor: UploadVisitor):
+        measurement = self._measurements
+        file_uri = measurement['file_uri']
+        sample_list = measurement['samples']
+        file_object = visitor.lab.get_spectrophotometry(sample_list)
+        visitor.upload_files(
+            file_objects=[(file_object, file_uri)],
+            samples=sample_list,
+            content_type='text/csv'
         )
