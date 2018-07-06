@@ -1,4 +1,4 @@
-# biofab-upload
+# ta3-upload-library
 
 Library for uploads from UW BIOFAB to TACC.
 
