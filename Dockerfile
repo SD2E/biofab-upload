@@ -2,9 +2,9 @@ FROM sd2e/python3 as langbuilder
 
 RUN mkdir -p /app/src
 WORKDIR /app
-COPY ./requirements.txt .
+COPY ./setup.py .
 
-RUN pip install -r requirements.txt
+RUN python3 setup.py develop
 
 COPY ./src /app
 
