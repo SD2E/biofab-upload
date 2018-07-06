@@ -17,7 +17,7 @@ class UploadVisitor:
         self._s3 = s3
         self._manifest = manifest
 
-    def upload_files(self, *, file_objects: List[Tuple(Any, str)],
+    def upload_files(self, *, file_objects: List[Tuple[Any, str]],
                      samples: List[str],
                      content_type):
         """
@@ -66,7 +66,7 @@ class Operator(abc.ABC):
         )
         self.accept(UploadVisitor(lab=lab, s3=s3, manifest=manifest))
         s3.put_object(
-            object=manifest,
+            object=str(manifest),
             bucket_path=lab.get_bucket_path(),
             agave_uri=self._manifest_uri,
             content_type='application/json'
@@ -126,7 +126,7 @@ class FlowCytometryOperator(Operator):
         """
         measurement_list = list()
         for measurement in measurements_json:
-            file_uri = next(iter(measurement['file'], None))
+            file_uri = next(iter(measurement['file']), None)
             source = next(iter(measurement['source']), None)
             sample_uri = source['sample']
             measurement_list.append({
